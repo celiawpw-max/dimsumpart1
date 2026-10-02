@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order Dim Sum Like a Local · Part 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500&family=Nunito:wght@400;500;600&family=Noto+Sans+HK:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#2e7d4f; --green-d:#1d5a36; --green-l:#e6f3ea; --green-m:#bfe0cb;
+  --yellow:#f7c948; --yellow-d:#d9a816; --yellow-l:#fff5d1;
+  --cream:#fffdf6; --ink:#1f2a24; --muted:#5b6a61; --line:#e3ebe5;
+  --red:#c2410c; --shadow:0 6px 20px rgba(29,90,54,.10); --r:20px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:Nunito,system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+.zh{font-family:"Noto Sans HK","PingFang HK",sans-serif}
+h1,h2,h3{font-family:Fredoka,Nunito,sans-serif;line-height:1.2;margin:0}
+.wrap{max-width:920px;margin:0 auto;padding:0 16px}
+button{font:inherit;cursor:pointer}
+button:disabled{cursor:not-allowed}
+
+/* progress pill */
+.progress{position:fixed;top:12px;right:12px;z-index:50;background:#fff;border:2px solid var(--green);border-radius:16px;padding:8px 12px;box-shadow:var(--shadow);width:220px}
+.progress .ptop{display:flex;justify-content:space-between;font-size:.78rem;font-weight:600;color:var(--green-d);margin-bottom:6px}
+.pbar{height:12px;background:var(--green-l);border-radius:99px;overflow:hidden}
+.pfill{height:100%;width:0;background:linear-gradient(90deg,var(--green),#46a56c);border-radius:99px;transition:width .5s ease}
+.psteps{display:flex;gap:4px;margin-top:6px}
+.psteps span{flex:1;height:5px;border-radius:9px;background:var(--line)}
+.psteps span.on{background:var(--yellow)}
+.psteps span.done{background:var(--green)}
+h1,h2,h3{font-weight:500} b,strong{font-weight:600}
+.skip{margin-top:8px;width:100%;border:1.5px solid var(--yellow-d);background:var(--yellow-l);color:var(--green-d);border-radius:10px;padding:5px 8px;font-size:.78rem;font-weight:500}
+.skip:hover{background:var(--yellow)}
+.skip[hidden]{display:none}
+
+/* hero */
+.hero{background:var(--green);color:#fff;padding:64px 0 48px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-80px;bottom:-120px;width:320px;height:320px;border-radius:50%;background:var(--yellow);opacity:.9}
+.hero .wrap{position:relative;z-index:1;display:flex;gap:20px;align-items:flex-end}
+.hero-text{flex:1;min-width:0}
+.brand{display:inline-block;background:var(--yellow);color:var(--green-d);font-weight:600;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;padding:4px 12px;border-radius:99px}
+.hero h1{font-size:clamp(2rem,6vw,3.2rem);margin:14px 0 6px}
+.hero p{max-width:560px;margin:0;opacity:.95;font-size:1.05rem}
+.route{display:flex;flex-wrap:wrap;gap:6px;margin-top:18px;font-size:.78rem}
+.route span{background:rgba(255,255,255,.14);padding:3px 10px;border-radius:99px}
+.route span.cur{background:var(--yellow);color:var(--green-d);font-weight:600}
+
+/* sections */
+section.step{margin:28px 0;background:#fff;border-radius:var(--r);box-shadow:var(--shadow);padding:26px 22px;border:1px solid var(--line);position:relative}
+.step-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.num{flex:none;width:38px;height:38px;border-radius:12px;background:var(--yellow);color:var(--green-d);display:grid;place-items:center;font-family:Fredoka;font-weight:500;font-size:1.2rem}
+.step h2{font-size:1.5rem;color:var(--green-d)}
+.lead{color:var(--muted);margin:4px 0 18px}
+.locked .body,.locked .next-row{display:none}
+.lockmsg{display:none;color:var(--muted);font-weight:500;background:var(--green-l);border-radius:14px;padding:14px;margin-top:10px}
+.locked .lockmsg{display:block}
+.locked{opacity:.75}
+
+.next-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:22px;padding-top:18px;border-top:2px dashed var(--line)}
+.hint{color:var(--muted);font-weight:500;font-size:.92rem}
+.hint.ok{color:var(--green)}
+.btn-next{background:var(--green);color:#fff;border:0;border-radius:14px;padding:12px 20px;font-weight:600;font-size:1rem;box-shadow:0 4px 0 var(--green-d);transition:transform .1s}
+.btn-next:disabled{background:#c9d3cd;box-shadow:0 4px 0 #aab6af}
+.btn-next:not(:disabled):active{transform:translateY(3px);box-shadow:0 1px 0 var(--green-d)}
+
+/* step 1 */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.box{border-radius:16px;padding:16px 18px;background:var(--green-l)}
+.box h3{font-size:1.1rem;color:var(--green-d);margin-bottom:8px}
+.box ul{margin:0;padding-left:20px}
+.box li{margin:4px 0}
+.box.yellow{background:var(--yellow-l);border:2px solid var(--yellow)}
+.goal{margin-top:16px;background:#fff;border:2px dashed var(--green-m);border-radius:16px;padding:14px 18px}
+.goal b{color:var(--green-d)}
+.audio-note{margin-top:16px}
+.audio-note{padding:10px 16px}
+.audio-note summary{cursor:pointer;list-style:none;font-family:Fredoka,Nunito,sans-serif;font-size:1.05rem;color:var(--green-d);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.audio-note summary::-webkit-details-marker{display:none}
+.audio-note .more{font-family:Nunito,sans-serif;font-size:.78rem;background:#fff;border:1.5px solid var(--yellow-d);border-radius:99px;padding:2px 10px;white-space:nowrap}
+.audio-note .more::after{content:" ▾"}
+.audio-note[open] .more::after{content:" ▴"}
+.audio-note[open] .more{font-size:0}.audio-note[open] .more::after{font-size:.78rem;content:"close ▴"}
+.note-body{margin-top:8px;font-size:.95rem}
+.audio-note ol{margin:6px 0 0;padding-left:22px}
+.audio-note li{margin:5px 0}
+.miccheck{margin-top:16px;display:flex;flex-wrap:wrap;align-items:center;gap:14px;background:#fff;border:2px solid var(--line);border-radius:16px;padding:14px 16px}
+.miccheck .zh{font-size:1.4rem;font-weight:500}
+.voice-status{font-size:.85rem;font-weight:500;padding:4px 10px;border-radius:99px;background:var(--green-l);color:var(--green-d)}
+.voice-status.warn{background:#fde4df;color:#a1321f}
+
+/* jyutping in outcomes */
+.ljp{color:var(--green-d);font-size:.85rem;background:#fff;border-radius:6px;padding:0 5px}
+
+/* tones */
+.tones{margin-top:16px;border:2px solid var(--line);border-radius:16px;padding:14px 16px}
+.tones-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin-bottom:12px}
+.tones-head h3{font-size:1.1rem;color:var(--green-d)}
+.tones-head span{font-size:.88rem;color:var(--muted)}
+.tone-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.tone{border:2px solid var(--line);background:var(--cream);border-radius:14px;padding:8px 6px 10px;text-align:center;color:var(--ink);transition:border-color .15s,background .15s}
+.tone:hover{border-color:var(--green-m);background:var(--green-l)}
+.tone.playing{border-color:var(--green);background:var(--green-l)}
+.tone svg{width:100%;max-width:90px;height:auto;display:block;margin:0 auto 4px}
+.tone .tn{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--yellow);color:var(--green-d);font-weight:600;font-size:.8rem}
+.tone .tname{display:block;font-size:.74rem;color:var(--muted);margin:3px 0 4px;line-height:1.2}
+.tone .tex{display:block;font-size:1.15rem}
+.tone .tjp{display:block;font-size:.78rem;color:var(--green-d)}
+
+/* climbing bao */
+.climb{flex:none;width:270px;align-self:flex-end;margin-bottom:-20px}
+.climb svg{width:100%;height:auto;display:block;overflow:visible}
+
+/* audio row */
+.audio-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.audio-row.listen-only .note{font-size:.78rem;color:var(--muted)}
+.ab{border:2px solid var(--green-m);background:#fff;color:var(--green-d);border-radius:99px;min-height:40px;padding:6px 14px;font-weight:600;font-size:.84rem;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:background .15s}
+.ab:not([aria-disabled="true"]):hover{background:var(--green-l)}
+.ab[aria-disabled="true"]{opacity:.4;cursor:not-allowed}
+.ab.done{background:var(--green);border-color:var(--green);color:#fff}
+.ab.rec.recording{background:var(--red);border-color:var(--red);color:#fff;animation:pulse 1s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(194,65,12,.25)}}
+.tick{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:.8rem;font-weight:600;background:var(--line);color:#fff}
+.audio-row.complete .tick{background:var(--green);color:#fff}
+.order-hint{font-size:.78rem;color:var(--muted);margin:2px 0 14px}
+
+/* flashcards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.fc-wrap{display:flex;flex-direction:column;gap:8px;position:relative}
+.fc-wrap .tick{position:absolute;top:8px;right:8px;z-index:2;box-shadow:0 0 0 2px #fff}
+.fc{perspective:900px;height:170px;cursor:pointer;background:none;border:0;padding:0;width:100%}
+.fc-in{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d}
+.fc.flipped .fc-in{transform:rotateY(180deg)}
+.fc-f,.fc-b{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;text-align:center}
+.fc-f{background:var(--green);color:#fff}
+.fc-f .zh{font-size:2rem;font-weight:500}
+.fc-f .jp{font-size:.95rem;opacity:.9;margin-top:4px}
+.fc-f .tap{position:absolute;bottom:8px;font-size:.8rem;opacity:.9}
+.fc-b{background:var(--yellow-l);border:2px solid var(--yellow);transform:rotateY(180deg);color:var(--green-d)}
+.fc-b .pic{font-size:2.4rem}
+.fc-b .en{font-weight:600;font-size:1.05rem}
+.fc-wrap.complete .fc-f{background:var(--green-d)}
+
+/* conversation */
+.scenario{background:var(--yellow-l);border-left:5px solid var(--yellow);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:.95rem}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.chip{border:2px solid var(--green-m);background:#fff;color:var(--green-d);border-radius:99px;padding:6px 14px;font-weight:600;font-size:.85rem}
+.chip.on{background:var(--green);border-color:var(--green);color:#fff}
+.chip.yel{background:var(--yellow);border-color:var(--yellow);color:var(--green-d)}
+.chat{display:flex;flex-direction:column;gap:14px}
+.msg{max-width:78%;display:flex;flex-direction:column;gap:6px}
+.msg.left{align-self:flex-start}
+.msg.right{align-self:flex-end;align-items:flex-end}
+.who{font-size:.75rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.bubble{border-radius:18px;padding:12px 16px}
+.left .bubble{background:var(--green-l);border-bottom-left-radius:4px}
+.right .bubble{background:var(--yellow-l);border:2px solid var(--yellow);border-bottom-right-radius:4px}
+.bubble .zh{font-size:1.3rem;font-weight:500}
+.bubble .jp{color:var(--green-d);font-weight:500;font-size:.9rem}
+.bubble .en{color:var(--muted);font-size:.9rem}
+.msg.speaking .bubble{outline:3px solid var(--green)}
+.hide-jp .jp{display:none}.hide-en .en{display:none}
+
+/* patterns */
+.pat{border:2px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px}
+.pat-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.purpose{font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#fff;background:var(--green);border-radius:99px;padding:3px 10px}
+.frame{font-size:.85rem;color:var(--muted)}
+.built{background:var(--green-l);border-radius:14px;padding:12px 14px;margin:10px 0}
+.built .zh{font-size:1.45rem;font-weight:500}
+.built .jp{color:var(--green-d);font-weight:500}
+.built .en{color:var(--muted);font-size:.92rem}
+.blank{display:inline-block;min-width:56px;border-bottom:3px solid var(--yellow-d);text-align:center;color:var(--green);background:var(--yellow-l);border-radius:6px 6px 0 0;padding:0 6px}
+.blank.empty{color:var(--green-d)}
+.gap{color:var(--muted);letter-spacing:.1em}
+.choices{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0 10px}
+.choices .chip small{font-weight:600;opacity:.8}
+.own{border:2px dashed var(--yellow-d);border-radius:99px;padding:6px 12px;font:inherit;font-size:.85rem;width:170px;background:#fff}
+.own:focus{outline:none;border-style:solid;border-color:var(--green)}
+
+/* game */
+.game-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+.stats{font-weight:600;color:var(--green-d)}
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.mc{aspect-ratio:1/1;perspective:700px;border:0;background:none;padding:0}
+.mc-in{position:relative;width:100%;height:100%;transition:transform .4s;transform-style:preserve-3d}
+.mc.open .mc-in,.mc.matched .mc-in{transform:rotateY(180deg)}
+.mc-f,.mc-b{position:absolute;inset:0;border-radius:14px;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px;text-align:center}
+.mc-f{background:var(--green-d);color:var(--yellow);font-family:Fredoka;font-size:1.8rem;background-image:radial-gradient(circle at 30% 30%,rgba(255,255,255,.15) 0 20%,transparent 21%)}
+.mc-b{background:#fff;border:3px solid var(--green-m);transform:rotateY(180deg)}
+.mc-b .pic{font-size:clamp(1.8rem,7vw,2.8rem);line-height:1}
+.mc-b .cap{font-size:.7rem;color:var(--muted);font-weight:500;margin-top:4px}
+.mc-b .zh{font-size:clamp(1.1rem,4.5vw,1.6rem);font-weight:500;color:var(--green-d)}
+.mc-b .jp{font-size:.72rem;color:var(--muted)}
+.mc.word .mc-b{background:var(--yellow-l);border-color:var(--yellow)}
+.mc.matched .mc-b{border-color:var(--green);box-shadow:0 0 0 3px var(--green) inset}
+.mc.shake .mc-in{animation:shake .4s}
+@keyframes shake{25%{translate:-5px}75%{translate:5px}}
+.finale{display:none;margin-top:18px;text-align:center;background:var(--yellow);color:var(--green-d);border-radius:18px;padding:20px}
+.finale.show{display:block}
+.finale h3{font-size:1.5rem}
+
+footer{text-align:center;color:var(--muted);font-size:.9rem;padding:20px 16px 50px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(120px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;font-weight:500;font-size:.9rem;z-index:60;transition:transform .3s;max-width:calc(100% - 32px)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:70}
+
+section.step{scroll-margin-top:16px}
+@media (max-width:640px){
+  .progress{top:0;left:0;right:0;width:auto;border:0;border-bottom:2px solid var(--green);border-radius:0;padding:6px 12px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px}
+  .progress .ptop{margin:0;gap:6px;font-size:.75rem;white-space:nowrap}
+  .progress .psteps{display:none}
+  .skip{margin:0;width:40px;height:32px;padding:0;border-radius:99px;font-size:.9rem}
+  .skip-t{display:none}
+  section.step{scroll-margin-top:60px}
+  .hero{padding-top:70px}
+  .ab{min-width:44px;min-height:44px;padding:0 10px}
+  .ab .t{display:none}
+  .audio-row{flex-wrap:nowrap}
+  .cards .audio-row{justify-content:space-between}
+  .grid2{grid-template-columns:1fr}
+  .tone-grid{grid-template-columns:repeat(3,1fr)}
+  .hero .wrap{flex-direction:column;align-items:stretch}
+  .climb{width:210px;align-self:flex-end;margin:4px 0 -24px}
+  .msg{max-width:94%}
+  section.step{padding:20px 16px}
+  .cards{grid-template-columns:1fr 1fr;gap:12px}
+  .fc{height:140px}.fc-f .zh{font-size:1.5rem}
+  .cards .ab{flex:1;min-width:0}
+  .board{gap:7px}
+}
+</style>
+</head>
+<body>
+
+<div class="progress" aria-label="Lesson progress">
+  <div class="ptop"><span id="pStep">Step 1 of 5</span><span id="pPct">0%</span></div>
+  <div class="pbar"><div class="pfill" id="pFill"></div></div>
+  <div class="psteps" id="pSteps"><span class="on"></span><span></span><span></span><span></span><span></span></div>
+  <button class="skip" id="skipBtn" title="Skip to next step" aria-label="Skip to next step"><span class="skip-t">Skip to next step </span>⏭</button>
+</div>
+<canvas id="confetti"></canvas>
+<div class="toast" id="toast" role="status"></div>
+
+<header class="hero">
+  <div class="wrap">
+   <div class="hero-text">
+    <span class="brand">Bite Size Cantonese</span>
+    <h1>Order Dim Sum Like a Local 🥟</h1>
+    <p>Part 1 · Getting a table and tea. Walk into a yum cha restaurant, say how many people, pick your tea and thank the server — all in Cantonese.</p>
+    <div class="route"><span class="cur">1 · Table &amp; Tea</span><span>2 · Ordering</span><span>3 · Requests</span><span>4 · Decoding Dim Sum</span><span>5 · Compliments</span><span>6 · Paying</span></div>
+   </div>
+   <div class="climb" aria-hidden="true"><svg id="climbSvg" viewBox="0 0 270 190"></svg></div>
+  </div>
+</header>
+
+<main class="wrap">
+
+<!-- STEP 1 -->
+<section class="step" id="s1" data-step="1">
+  <div class="step-head"><div class="num">1</div><h2>Why this lesson matters</h2></div>
+  <p class="lead">The first 30 seconds at yum cha go the same way almost every time. Nail them and you start the meal like a local.</p>
+  <div class="body">
+    <div class="grid2">
+      <div class="box">
+        <h3>🎯 Interaction purpose</h3>
+        <p style="margin:0">You arrive at a busy yum cha restaurant with a friend. The server asks <b>how many people</b>, shows you to a table and asks <b>which tea</b> you'd like. You answer, order a pot and say thank you.</p>
+      </div>
+      <div class="box">
+        <h3>✅ By the end you can…</h3>
+        <ul>
+          <li>Understand <span class="zh">幾位呀？</span> <span class="ljp">gei2 wai6 aa3?</span> and say your party size</li>
+          <li>Ask which teas you can choose from</li>
+          <li>Order one pot of the tea you like</li>
+          <li>Thank the server naturally with <span class="zh">唔該</span> <span class="ljp">m4 goi1</span> / <span class="zh">唔該晒</span> <span class="ljp">m4 goi1 saai3</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="goal"><b>Completion goal:</b> without looking, say your party size, choose one tea and thank the server in a four-line arrival role-play.</div>
+
+    <div class="tones">
+      <div class="tones-head"><h3>🎵 The six tones</h3><span>The number at the end of each Jyutping syllable tells you the pitch. Tap a tone to hear an example from this lesson.</span></div>
+      <div class="tone-grid" id="toneGrid"></div>
+    </div>
+
+    <details class="box yellow audio-note">
+      <summary>🎧 Check your audio settings before recording <span class="more">tap to open</span></summary>
+      <div class="note-body">
+      In every step you'll <b>listen</b> to the model, <b>record</b> yourself, then <b>play yours back</b>. You can't move on until each one is done, so set up first:
+      <ol>
+        <li><b>Allow the microphone.</b> When your browser asks, click <i>Allow</i>. If you clicked Block, use the 🔒 or ⓘ icon by the address bar to turn the microphone back on, then reload.</li>
+        <li><b>Pick the right mic.</b> Mac: System Settings → Sound → Input. Windows: Settings → System → Sound → Input. Make sure the level moves when you talk.</li>
+        <li><b>Turn the volume up</b> and use headphones if you can, so the playback doesn't echo.</li>
+        <li><b>Get a Cantonese voice.</b> The model audio uses your device's Cantonese (Hong Kong) voice. Mac: System Settings → Accessibility → Spoken Content → System voice → Manage Voices → Chinese (Hong Kong). Windows: Settings → Time &amp; language → Speech → Add voices → Chinese (Traditional, Hong Kong SAR). Chrome or Safari work best.</li>
+      </ol></div>
+    </details>
+
+    <div class="miccheck">
+      <div><div class="zh">你好！</div><div style="font-size:.85rem;color:var(--muted)">nei5 hou2 · hello — your sound check</div></div>
+      <div id="ctrl-mic"></div>
+      <span class="voice-status" id="voiceStatus">Checking for a Cantonese voice…</span>
+    </div>
+  </div>
+  <div class="next-row">
+    <span class="hint" data-hint>Do the sound check: listen, record, play yours back.</span>
+    <button class="btn-next" data-next="2" disabled>Next: Flashcards →</button>
+  </div>
+</section>
+
+<!-- STEP 2 -->
+<section class="step locked" id="s2" data-step="2">
+  <div class="step-head"><div class="num">2</div><h2>Core word flashcards</h2></div>
+  <p class="lead">Tap a card to flip it. Then listen, record yourself and play it back.</p>
+  <div class="lockmsg">🔒 Finish Step 1 to unlock.</div>
+  <div class="body">
+    <p class="order-hint">Order for every card: 🔊 Listen → 🎙️ Record → 🎧 Play mine. A green ✓ means the card is done. Tip: tap a greyed-out button to see what to do first.</p>
+    <div class="cards" id="cards"></div>
+  </div>
+  <div class="next-row">
+    <span class="hint" data-hint>Complete all cards to unlock the conversation.</span>
+    <button class="btn-next" data-next="3" disabled>Next: Conversation →</button>
+  </div>
+</section>
+
+<!-- STEP 3 -->
+<section class="step locked" id="s3" data-step="3">
+  <div class="step-head"><div class="num">3</div><h2>The conversation</h2></div>
+  <p class="lead">Hear the whole exchange, then practise it line by line.</p>
+  <div class="lockmsg">🔒 Finish Step 2 to unlock.</div>
+  <div class="body">
+    <div class="scenario">🏮 You and a friend arrive at a yum cha restaurant. The server asks your party size, shows you to the table and asks which tea you'd like. <i>Restaurants vary — some ask about tea, some don't. Follow the staff's question.</i></div>
+    <div class="toolbar">
+      <button class="chip yel" id="playAll">▶ Play whole conversation</button>
+      <button class="chip on" data-toggle="jp">Jyutping</button>
+      <button class="chip on" data-toggle="en">English</button>
+    </div>
+    <p class="order-hint">You are Peter and Mary: 🔊 Listen → 🎙️ Record → 🎧 Play mine. The waitress lines just need a listen.</p>
+    <div class="chat" id="chat"></div>
+  </div>
+  <div class="next-row">
+    <span class="hint" data-hint>Listen to every line and record Peter and Mary's lines to unlock sentence patterns.</span>
+    <button class="btn-next" data-next="4" disabled>Next: Your sentences →</button>
+  </div>
+</section>
+
+<!-- STEP 4 -->
+<section class="step locked" id="s4" data-step="4">
+  <div class="step-head"><div class="num">4</div><h2>Build your own sentences</h2></div>
+  <p class="lead">Fill the blank with your own party size and favourite tea, then say it out loud.</p>
+  <div class="lockmsg">🔒 Finish Step 3 to unlock.</div>
+  <div class="body"><p class="order-hint">Pick a word (or type your own) → 🔊 Listen → 🎙️ Record → 🎧 Play mine.</p><div id="patterns"></div></div>
+  <div class="next-row">
+    <span class="hint" data-hint>Complete all four patterns to unlock the game.</span>
+    <button class="btn-next" data-next="5" disabled>Next: Memory match →</button>
+  </div>
+</section>
+
+<!-- STEP 5 -->
+<section class="step locked" id="s5" data-step="5">
+  <div class="step-head"><div class="num">5</div><h2>Memory match</h2></div>
+  <p class="lead">Find each picture and its Cantonese word. You'll hear the word every time you make a match.</p>
+  <div class="lockmsg">🔒 Finish Step 4 to unlock.</div>
+  <div class="body">
+    <div class="game-top">
+      <span class="stats">Moves: <span id="moves">0</span> · Pairs: <span id="pairs">0</span>/6</span>
+      <button class="chip" id="restart">↻ Shuffle again</button>
+    </div>
+    <div class="board" id="board"></div>
+    <div class="finale" id="finale">
+      <h3>唔該晒！ Lesson complete 🎉</h3>
+      <p style="margin:6px 0 0">Now try the four-line role-play with a friend — without looking. See you in Part 2: Ordering Dim Sum.</p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>Made with 🍵 by Bite Size Cantonese · for practising out loud, ideally before your next yum cha.</footer>
+
+<script>
+/* ---------- data ---------- */
+const WORDS = [
+  {id:'w1', zh:'幾位', jp:'gei2 wai6', en:'How many people?', pic:'🙋‍♀️❓'},
+  {id:'w2', zh:'兩位', jp:'loeng5 wai6', en:'two people (also 三位 three, 四位 four)', pic:'👫'},
+  {id:'w3', zh:'想飲咩茶', jp:'soeng2 jam2 me1 caa4', en:'What tea would you like?', pic:'🍵❓'},
+  {id:'w4', zh:'普洱', jp:'pou2 nei5', en:'Pu-erh — deep, earthy, mellow', pic:'🟤🍵'},
+  {id:'w5', zh:'香片', jp:'hoeng1 pin2', en:'Jasmine — light and fragrant', pic:'💮'},
+  {id:'w6', zh:'菊花', jp:'guk1 faa1', en:'Chrysanthemum — gentle, floral', pic:'🌼'},
+  {id:'w7', zh:'壽眉', jp:'sau6 mei4', en:'Shoumei — mild white tea', pic:'🍃'},
+  {id:'w8', zh:'一壺', jp:'jat1 wu4', en:'one pot', pic:'🫖'},
+  {id:'w9', zh:'唔該', jp:'m4 goi1', en:'please / thanks (for a service)', pic:'🙏'},
+  {id:'w10', zh:'唔該晒', jp:'m4 goi1 saai3', en:'Thank you very much!', pic:'🙏✨'}
+];
+const LINES = [
+  {id:'c1', who:'Waitress', side:'left', zh:'你好！幾位呀？', jp:'nei5 hou2! gei2 wai6 aa3?', en:'Hello! How many people?'},
+  {id:'c2', who:'Peter', side:'right', zh:'兩位，唔該。', jp:'loeng5 wai6, m4 goi1.', en:'Two people, please.'},
+  {id:'c3', who:'Waitress', side:'left', zh:'呢邊丫。想飲咩茶呀？', jp:'ni1 bin1 aa3. soeng2 jam2 me1 caa4 aa3?', en:'This way. What tea would you like?'},
+  {id:'c4', who:'Mary', side:'right', zh:'有咩茶可以揀呀？', jp:'jau5 me1 caa4 ho2 ji5 gaan2 aa3?', en:'Which teas can we choose from?'},
+  {id:'c5', who:'Waitress', side:'left', zh:'有普洱、香片、菊花同壽眉。', jp:'jau5 pou2 nei5, hoeng1 pin2, guk1 faa1 tung4 sau6 mei4.', en:'We have Pu-erh, jasmine, chrysanthemum and Shoumei tea.'},
+  {id:'c6', who:'Peter', side:'right', zh:'我哋要一壺普洱，唔該。', jp:'ngo5 dei6 jiu3 jat1 wu4 pou2 nei5, m4 goi1.', en:'We would like one pot of Pu-erh, please.'},
+  {id:'c7', who:'Waitress', side:'left', zh:'好呀，唔該等陣。', jp:'hou2 aa3, m4 goi1 dang2 zan6.', en:'Okay, please wait a moment.'},
+  {id:'c8', who:'Mary', side:'right', zh:'唔該晒！', jp:'m4 goi1 saai3!', en:'Thank you very much!'}
+];
+const NUMS = [
+  {zh:'一',jp:'jat1',en:'one person'},{zh:'兩',jp:'loeng5',en:'two'},{zh:'三',jp:'saam1',en:'three'},
+  {zh:'四',jp:'sei3',en:'four'},{zh:'五',jp:'ng5',en:'five'},{zh:'六',jp:'luk6',en:'six'}
+];
+const TEAS = [
+  {zh:'普洱',jp:'pou2 nei5',en:'Pu-erh'},{zh:'香片',jp:'hoeng1 pin2',en:'jasmine'},
+  {zh:'菊花',jp:'guk1 faa1',en:'chrysanthemum'},{zh:'壽眉',jp:'sau6 mei4',en:'Shoumei'}
+];
+const PATTERNS = [
+  {id:'p1', purpose:'Party size', blank:true, opts:NUMS, ownPh:'or type e.g. 七',
+   build:v=>({zh:`${v.zh}位，唔該。`, jp:`${v.jp} wai6, m4 goi1.`, en:`A table for ${v.en}, please.`}),
+   frame:{zh:'___ 位，唔該。', jp:'___ wai6, m4 goi1.', en:'A table for ___, please.'}},
+  {id:'p2', purpose:'Ask choices', fixed:{zh:'有咩茶可以揀呀？', jp:'jau5 me1 caa4 ho2 ji5 gaan2 aa3?', en:'Which teas can we choose from?'}},
+  {id:'p3', purpose:'Choose tea', blank:true, opts:TEAS, ownPh:'or type your tea e.g. 鐵觀音',
+   build:v=>({zh:`我哋要一壺${v.zh}，唔該。`, jp:`ngo5 dei6 jiu3 jat1 wu4 ${v.jp}, m4 goi1.`, en:`We would like one pot of ${v.en}, please.`}),
+   frame:{zh:'我哋要一壺 ___，唔該。', jp:'ngo5 dei6 jiu3 jat1 wu4 ___, m4 goi1.', en:'We would like one pot of ___, please.'}},
+  {id:'p4', purpose:'Thank', fixed:{zh:'唔該晒！', jp:'m4 goi1 saai3!', en:'Thank you very much!'}}
+];
+const PAIRS = [
+  {k:'pot', pic:'🫖', cap:'one pot', zh:'一壺', jp:'jat1 wu4'},
+  {k:'two', pic:'👫', cap:'two people', zh:'兩位', jp:'loeng5 wai6'},
+  {k:'chry', pic:'🌼', cap:'chrysanthemum', zh:'菊花', jp:'guk1 faa1'},
+  {k:'jas', pic:'💮', cap:'jasmine', zh:'香片', jp:'hoeng1 pin2'},
+  {k:'thx', pic:'🙏', cap:'thank you!', zh:'唔該晒', jp:'m4 goi1 saai3'},
+  {k:'yum', pic:'🍵🥟', cap:'yum cha', zh:'飲茶', jp:'jam2 caa4'}
+];
+
+/* ---------- state ---------- */
+const SECTIONS = {1:['mic'], 2:WORDS.map(w=>w.id), 3:LINES.map(l=>l.id), 4:PATTERNS.map(p=>p.id), 5:['game']};
+const ALL = Object.values(SECTIONS).flat();
+const st = {}; ALL.forEach(id=>st[id]={p:false,r:false,l:false,done:false});
+const texts = {mic:()=> '你好！'};
+const recs = {};
+let unlocked = 1;
+
+/* ---------- helpers ---------- */
+const $ = s=>document.querySelector(s);
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),3200)}
+function ctrl(id,listenOnly){
+  if(listenOnly) return `<div class="audio-row listen-only" data-id="${id}" data-only="1">
+  <button class="ab play" data-act="play" aria-label="Listen" title="Listen"><span class="ic">🔊</span><span class="t">Listen</span></button>
+  <span class="note">listen only</span><span class="tick" title="done">✓</span></div>`;
+  return `<div class="audio-row" data-id="${id}">
+  <button class="ab play" data-act="play" aria-label="Listen" title="Listen"><span class="ic">🔊</span><span class="t">Listen</span></button>
+  <button class="ab rec" data-act="rec" aria-disabled="true" aria-label="Record" title="Listen first"><span class="ic">🎙️</span><span class="t lbl">Record</span></button>
+  <button class="ab back" data-act="back" aria-disabled="true" aria-label="Play mine" title="Record first"><span class="ic">🎧</span><span class="t">Play mine</span></button>
+  <span class="tick" title="done">✓</span></div>`}
+
+/* ---------- speech ---------- */
+let voice=null;
+function pickVoice(){
+  const vs = speechSynthesis.getVoices();
+  voice = vs.find(v=>/zh[-_]HK/i.test(v.lang)) || vs.find(v=>/yue/i.test(v.lang)) || vs.find(v=>/cantonese|sinji|hong ?kong/i.test(v.name)) || null;
+  const el=$('#voiceStatus');
+  if(voice){el.textContent='✓ Cantonese voice ready: '+voice.name;el.classList.remove('warn')}
+  else if(vs.length){el.textContent='⚠ No Cantonese voice found — see tip 4 above';el.classList.add('warn')}
+}
+if('speechSynthesis' in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice;setTimeout(pickVoice,800)}
+else {$('#voiceStatus').textContent='⚠ This browser cannot play model audio — try Chrome or Safari';$('#voiceStatus').classList.add('warn')}
+function speak(text,onend){
+  if(!('speechSynthesis' in window)){onend&&onend();return}
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='zh-HK'; if(voice) u.voice=voice; u.rate=.85;
+  u.onend=()=>onend&&onend(); u.onerror=()=>onend&&onend();
+  speechSynthesis.speak(u);
+}
+
+/* ---------- recording ---------- */
+let stream=null, recorder=null, recId=null, recTimer=null;
+async function startRec(id,btn){
+  try{ if(!stream) stream=await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch(e){ toast('🎙️ Microphone blocked or not found — check your audio settings in Step 1.'); return; }
+  if(recorder && recorder.state==='recording') recorder.stop();
+  const types=['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/ogg'];
+  const mime=types.find(t=>window.MediaRecorder && MediaRecorder.isTypeSupported(t));
+  const chunks=[];
+  const rc=new MediaRecorder(stream, mime?{mimeType:mime}:undefined); recorder=rc;
+  recId=id;
+  rc.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+  rc.onstop=()=>{
+    clearTimeout(recTimer);
+    btn.classList.remove('recording'); btn.querySelector('.lbl').textContent='Record again'; btn.querySelector('.ic').textContent='🎙️'; btn.setAttribute('aria-label','Record again');
+    if(!chunks.length){toast('Nothing was recorded — check your mic input.');return}
+    if(recs[id]) URL.revokeObjectURL(recs[id]);
+    recs[id]=URL.createObjectURL(new Blob(chunks,{type:rc.mimeType||'audio/webm'}));
+    st[id].r=true; refreshRow(id);
+  };
+  rc.start();
+  btn.classList.add('recording'); btn.querySelector('.lbl').textContent='Stop'; btn.querySelector('.ic').textContent='⏹'; btn.setAttribute('aria-label','Stop recording');
+  recTimer=setTimeout(()=>rc.state==='recording'&&rc.stop(),10000);
+}
+
+function refreshRow(id){
+  const row=document.querySelector(`.audio-row[data-id="${id}"]`); if(!row) return;
+  const s=st[id];
+  const pb=row.querySelector('.play'), rb=row.querySelector('.rec'), bb=row.querySelector('.back');
+  pb.classList.toggle('done',s.p);
+  if(rb){rb.setAttribute('aria-disabled',String(!s.p)); rb.title=s.p?'Record yourself':'Listen first'; rb.classList.toggle('done',s.r&&!rb.classList.contains('recording'));
+  bb.setAttribute('aria-disabled',String(!s.r)); bb.title=s.r?'Play your recording':'Record first'; bb.classList.toggle('done',s.l);}
+  row.classList.toggle('complete',s.done);
+  const wrap=row.closest('.fc-wrap'); if(wrap) wrap.classList.toggle('complete',s.done);
+}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.ab'); if(!b) return;
+  const row=b.closest('.audio-row'), id=row.dataset.id, act=b.dataset.act;
+  if(b.getAttribute('aria-disabled')==='true'){toast(act==='rec'?'🔊 Listen to the model first, then record.':'🎙️ Record yourself first, then play it back.');return}
+  if(act==='play'){
+    const t=texts[id](); if(!t){toast('Pick or type a word for the blank first.');return}
+    speak(t); st[id].p=true; refreshRow(id);
+    if(row.dataset.only) markListened(id,b);
+  } else if(act==='rec'){
+    if(recorder && recorder.state==='recording' && recId===id){recorder.stop();return}
+    startRec(id,b);
+  } else if(act==='back'){
+    if(!recs[id]) return;
+    const a=new Audio(recs[id]);
+    a.onended=()=>markListened(id,b);
+    a.play().catch(()=>toast('Could not play your recording — check your volume/output.'));
+    setTimeout(()=>markListened(id,b),12000); // fallback if 'ended' never fires
+  }
+});
+function markListened(id,btn){
+  if(st[id].done) return;
+  st[id].l=true; st[id].done=true; refreshRow(id);
+  progress(); checkSection();
+}
+
+/* ---------- sections / progress ---------- */
+function sectionOf(id){return +Object.keys(SECTIONS).find(k=>SECTIONS[k].includes(id))}
+function checkSection(){
+  for(const k of Object.keys(SECTIONS)){
+    const sec=$('#s'+k), done=SECTIONS[k].every(id=>st[id].done), btn=sec.querySelector('.btn-next'), hint=sec.querySelector('[data-hint]');
+    if(done && btn && btn.disabled){
+      btn.disabled=false; hint.textContent='🎉 Step complete — next step unlocked!'; hint.classList.add('ok');
+    } else if(!done && hint){
+      const n=SECTIONS[k].filter(id=>st[id].done).length;
+      if(SECTIONS[k].length>1) hint.textContent=`${n} of ${SECTIONS[k].length} done — record & listen to every item to unlock the next step.`;
+    }
+  }
+}
+function progress(){
+  const n=ALL.filter(id=>st[id].done).length, pct=Math.round(n/ALL.length*100);
+  $('#pFill').style.width=pct+'%'; $('#pPct').textContent=pct+'%';
+  $('#pStep').textContent=pct===100?'Lesson complete!':`Step ${unlocked} of 5`;
+  [...$('#pSteps').children].forEach((s,i)=>{const k=i+1;
+    s.className=SECTIONS[k].every(id=>st[id].done)?'done':(k<=unlocked?'on':'')});
+}
+function goStep(k){
+  unlocked=Math.max(unlocked,k);
+  const sec=$('#s'+k); sec.classList.remove('locked');
+  $('#skipBtn').hidden = unlocked>=5;
+  progress(); sec.scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('#skipBtn').addEventListener('click',()=>{
+  if(unlocked>=5) return;
+  const prev=$('#s'+unlocked), nb=prev.querySelector('.btn-next'); if(nb) nb.disabled=false;
+  goStep(unlocked+1); toast('Skipped ahead — you can scroll back to practise any time.');
+});
+document.querySelectorAll('.btn-next').forEach(b=>b.addEventListener('click',()=>{
+  goStep(+b.dataset.next);
+}));
+
+/* ---------- build step 1 ---------- */
+$('#ctrl-mic').innerHTML=ctrl('mic');
+
+/* ---------- build flashcards ---------- */
+$('#cards').innerHTML=WORDS.map(w=>{texts[w.id]=()=>w.zh;return `
+  <div class="fc-wrap">
+    <button class="fc" aria-label="Flip card ${w.zh}">
+      <div class="fc-in">
+        <div class="fc-f"><div class="zh">${w.zh}</div><div class="jp">${w.jp}</div><div class="tap">tap to flip</div></div>
+        <div class="fc-b"><div class="pic">${w.pic}</div><div class="en">${w.en}</div></div>
+      </div>
+    </button>${ctrl(w.id)}
+  </div>`}).join('');
+document.querySelectorAll('.fc').forEach(c=>c.addEventListener('click',()=>c.classList.toggle('flipped')));
+
+/* ---------- build conversation ---------- */
+$('#chat').innerHTML=LINES.map(l=>{texts[l.id]=()=>l.zh;return `
+  <div class="msg ${l.side}" id="m-${l.id}">
+    <span class="who">${l.who}</span>
+    <div class="bubble"><div class="zh">${l.zh}</div><div class="jp">${l.jp}</div><div class="en">${l.en}</div></div>
+    ${ctrl(l.id,l.side==='left')}
+  </div>`}).join('');
+document.querySelectorAll('[data-toggle]').forEach(b=>b.addEventListener('click',()=>{
+  b.classList.toggle('on'); $('#chat').classList.toggle('hide-'+b.dataset.toggle);
+}));
+let playingAll=false;
+$('#playAll').addEventListener('click',()=>{
+  if(playingAll){playingAll=false;speechSynthesis.cancel();document.querySelectorAll('.msg').forEach(m=>m.classList.remove('speaking'));$('#playAll').textContent='▶ Play whole conversation';return}
+  playingAll=true; $('#playAll').textContent='■ Stop';
+  let i=0;
+  const next=()=>{
+    document.querySelectorAll('.msg').forEach(m=>m.classList.remove('speaking'));
+    if(!playingAll||i>=LINES.length){playingAll=false;$('#playAll').textContent='▶ Play whole conversation';return}
+    const l=LINES[i++]; $('#m-'+l.id).classList.add('speaking');
+    speak(l.zh,()=>setTimeout(next,450));
+  };
+  next();
+});
+
+/* ---------- build patterns ---------- */
+const chosen={};
+$('#patterns').innerHTML=PATTERNS.map(p=>{
+  if(p.fixed){texts[p.id]=()=>p.fixed.zh; return `
+  <div class="pat"><div class="pat-top"><span class="purpose">${p.purpose}</span></div>
+    <div class="built"><div class="zh">${p.fixed.zh}</div><div class="jp">${p.fixed.jp}</div><div class="en">${p.fixed.en}</div></div>
+    ${ctrl(p.id)}</div>`}
+  texts[p.id]=()=>chosen[p.id]?p.build(chosen[p.id]).zh:'';
+  return `
+  <div class="pat" data-pat="${p.id}"><div class="pat-top"><span class="purpose">${p.purpose}</span></div>
+    <div class="choices">${p.opts.map((o,i)=>`<button class="chip" data-opt="${i}">${o.zh} <small>${o.jp}</small></button>`).join('')}
+      <input class="own zh" placeholder="${p.ownPh}" aria-label="Type your own word"></div>
+    <div class="built" id="b-${p.id}"></div>
+    ${ctrl(p.id)}</div>`}).join('');
+function renderBuilt(p){
+  const v=chosen[p.id], el=$('#b-'+p.id);
+  const fill=(s,w)=>s.replace('___',`<span class="blank ${w?'':'empty'}">${w||'?'}</span>`);
+  const plain=(s,w)=>w?fill(s,w):s.replace('___','<span class="gap">___</span>');
+  el.innerHTML=`<div class="zh">${fill(p.frame.zh,v&&v.zh)}</div><div class="jp">${plain(p.frame.jp,v&&v.jp)}</div><div class="en">${plain(p.frame.en,v&&v.en)}</div>`;
+}
+PATTERNS.filter(p=>p.blank).forEach(p=>{
+  const box=document.querySelector(`[data-pat="${p.id}"]`);
+  renderBuilt(p);
+  box.querySelectorAll('[data-opt]').forEach(b=>b.addEventListener('click',()=>{
+    box.querySelectorAll('[data-opt]').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+    box.querySelector('.own').value=''; chosen[p.id]=p.opts[+b.dataset.opt]; renderBuilt(p); speak(p.build(chosen[p.id]).zh);
+  }));
+  box.querySelector('.own').addEventListener('input',e=>{
+    box.querySelectorAll('[data-opt]').forEach(x=>x.classList.remove('on'));
+    const t=e.target.value.trim();
+    chosen[p.id]=t?{zh:t,jp:'(your word)',en:t}:null; renderBuilt(p);
+  });
+});
+
+/* ---------- memory game ---------- */
+let open=[], moves=0, matched=0, busy=false;
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function buildBoard(){
+  open=[];moves=0;matched=0;busy=false;$('#moves').textContent=0;$('#pairs').textContent=0;
+  const deck=shuffle(PAIRS.flatMap(p=>[{...p,t:'pic'},{...p,t:'word'}]));
+  $('#board').innerHTML=deck.map(c=>`
+    <button class="mc ${c.t}" data-k="${c.k}" aria-label="memory card">
+      <div class="mc-in"><div class="mc-f">茶</div>
+        <div class="mc-b">${c.t==='pic'?`<div class="pic">${c.pic}</div><div class="cap">${c.cap}</div>`:`<div class="zh">${c.zh}</div><div class="jp">${c.jp}</div>`}</div>
+      </div></button>`).join('');
+  document.querySelectorAll('.mc').forEach(c=>c.addEventListener('click',()=>flip(c)));
+}
+function flip(c){
+  if(busy||c.classList.contains('open')||c.classList.contains('matched')) return;
+  c.classList.add('open'); open.push(c);
+  if(open.length<2) return;
+  moves++; $('#moves').textContent=moves;
+  const [a,b]=open;
+  if(a.dataset.k===b.dataset.k && a!==b){
+    setTimeout(()=>{a.classList.add('matched');b.classList.add('matched');a.classList.remove('open');b.classList.remove('open')},350);
+    open=[]; matched++; $('#pairs').textContent=matched;
+    speak(PAIRS.find(p=>p.k===a.dataset.k).zh);
+    if(matched===PAIRS.length) setTimeout(win,600);
+  } else {
+    busy=true;
+    setTimeout(()=>{a.classList.add('shake');b.classList.add('shake')},350);
+    setTimeout(()=>{a.classList.remove('open','shake');b.classList.remove('open','shake');open=[];busy=false},1000);
+  }
+}
+function win(){
+  $('#finale').classList.add('show');
+  st.game.done=true; progress();
+  celebrate(2000);
+}
+$('#restart').addEventListener('click',()=>{$('#finale').classList.remove('show');buildBoard()});
+buildBoard();
+
+/* ---------- confetti ---------- */
+const cv=$('#confetti'), cx=cv.getContext('2d'); let parts=[], raf=null;
+function sizeCv(){cv.width=innerWidth*devicePixelRatio;cv.height=innerHeight*devicePixelRatio;cx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0)}
+sizeCv(); addEventListener('resize',sizeCv);
+const COLS=['#2e7d4f','#f7c948','#46a56c','#ffe58a','#ffffff','#e0533d'];
+let celebEnd=0;
+function celebrate(ms){
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  celebEnd=performance.now()+ms;
+  const spawn=()=>{
+    if(performance.now()>celebEnd-400) return;
+    for(let i=0;i<(reduce?1:7);i++) parts.push({x:Math.random()*innerWidth,y:-12,vx:(Math.random()-.5)*3,vy:2+Math.random()*3,w:6+Math.random()*6,h:4+Math.random()*5,c:COLS[Math.floor(Math.random()*COLS.length)],r:Math.random()*6,vr:(Math.random()-.5)*.3});
+    requestAnimationFrame(spawn);
+  };
+  spawn(); if(!raf) raf=requestAnimationFrame(tick);
+}
+function tick(now){
+  cx.clearRect(0,0,innerWidth,innerHeight);
+  const left=celebEnd-now, alpha=left>400?1:Math.max(0,left/400);
+  if(alpha<=0) parts=[];
+  parts=parts.filter(p=>p.y<innerHeight+20);
+  for(const p of parts){p.vy+=.12;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;
+    cx.save();cx.translate(p.x,p.y);cx.rotate(p.r);cx.globalAlpha=alpha;cx.fillStyle=p.c;cx.fillRect(-p.w/2,-p.h/2,p.w,p.h);cx.restore()}
+  raf=parts.length?requestAnimationFrame(tick):null;
+  if(!raf) cx.clearRect(0,0,innerWidth,innerHeight);
+}
+
+/* ---------- tone chart ---------- */
+const TONES=[
+  {n:1,name:'high level',c:[5,5],zh:'該',jp:'goi1',say:'唔該'},
+  {n:2,name:'high rising',c:[3,5],zh:'好',jp:'hou2',say:'好'},
+  {n:3,name:'mid level',c:[3,3],zh:'要',jp:'jiu3',say:'要'},
+  {n:4,name:'low falling',c:[2,1],zh:'茶',jp:'caa4',say:'茶'},
+  {n:5,name:'low rising',c:[2,3],zh:'兩',jp:'loeng5',say:'兩'},
+  {n:6,name:'low level',c:[2,2],zh:'位',jp:'wai6',say:'位'}
+];
+const ly=l=>58-(l-1)*12; // pitch level 1..5 -> y
+$('#toneGrid').innerHTML=TONES.map(t=>`
+  <button class="tone" data-say="${t.say}" aria-label="Tone ${t.n}, ${t.name}, example ${t.zh} ${t.jp}">
+    <svg viewBox="0 0 80 66" aria-hidden="true">
+      ${[1,2,3,4,5].map(l=>`<line x1="6" x2="74" y1="${ly(l)}" y2="${ly(l)}" stroke="#d7e3db" stroke-width="1" stroke-dasharray="2 3"/>`).join('')}
+      <line x1="14" y1="${ly(t.c[0])}" x2="66" y2="${ly(t.c[1])}" stroke="#2e7d4f" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="66" cy="${ly(t.c[1])}" r="4.5" fill="#f7c948" stroke="#1d5a36" stroke-width="1.5"/>
+    </svg>
+    <span class="tn">${t.n}</span>
+    <span class="tname">${t.name}<br>pitch ${t.c.join('')}</span>
+    <span class="tex zh">${t.zh}</span><span class="tjp">${t.jp}</span>
+  </button>`).join('');
+document.querySelectorAll('.tone').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.tone').forEach(x=>x.classList.remove('playing')); b.classList.add('playing');
+  speak(b.dataset.say,()=>b.classList.remove('playing'));
+}));
+
+/* ---------- climbing bao on a dim sum basket staircase ---------- */
+(function(){
+  const svg=$('#climbSvg'), W=46, H=24, X0=12, BASE=184, COLS_N=5;
+  let html='<ellipse cx="135" cy="186" rx="130" ry="6" fill="rgba(0,0,0,.12)"/>';
+  for(let c=0;c<COLS_N;c++){
+    const x=X0+c*(W+4);
+    for(let k=0;k<=c;k++){
+      const y=BASE-(k+1)*H, top=k===c;
+      html+=`<g>
+        <rect x="${x}" y="${y+5}" width="${W}" height="${H-5}" rx="4" fill="#e7bf74" stroke="#a8742a" stroke-width="1.5"/>
+        <line x1="${x+3}" x2="${x+W-3}" y1="${y+12}" y2="${y+12}" stroke="#c9963f" stroke-width="1.2"/>
+        <line x1="${x+3}" x2="${x+W-3}" y1="${y+17}" y2="${y+17}" stroke="#c9963f" stroke-width="1.2"/>
+        ${top?`<ellipse cx="${x+W/2}" cy="${y+5}" rx="${W/2}" ry="5.5" fill="#f4d79a" stroke="#a8742a" stroke-width="1.5"/>
+               <ellipse cx="${x+W/2}" cy="${y+5}" rx="${W/2-7}" ry="2.6" fill="none" stroke="#c9963f" stroke-width="1"/>`:''}
+      </g>`;
+    }
+  }
+  // steam + teapot prize on top
+  const tx=X0+4*(W+4)+W/2, ty=BASE-5*H;
+  html+=`<g class="steam" opacity=".85">
+      <path d="M${tx-8} ${ty-4} q-5 -8 0 -15 q5 -7 0 -14" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><animate attributeName="opacity" values="0;1;0" dur="2.4s" repeatCount="indefinite"/></path>
+      <path d="M${tx+8} ${ty-6} q-5 -8 0 -15 q5 -7 0 -14" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><animate attributeName="opacity" values="0;1;0" dur="2.4s" begin="1.2s" repeatCount="indefinite"/></path></g>`;
+  // the little bao guy
+  html+=`<g id="bao"><g id="baoBody">
+      <line id="legL" x1="-4" y1="-7" x2="-5" y2="0" stroke="#7a5a2e" stroke-width="2.6" stroke-linecap="round"/>
+      <line id="legR" x1="4" y1="-7" x2="5" y2="0" stroke="#7a5a2e" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="M-13 -9 Q-14 -26 0 -29 Q14 -26 13 -9 Q0 -4 -13 -9 Z" fill="#fffaf0" stroke="#d9c39a" stroke-width="1.5"/>
+      <path d="M-4 -27 Q0 -33 4 -27" fill="none" stroke="#d9c39a" stroke-width="1.5" stroke-linecap="round"/>
+      <circle cx="0" cy="-29.5" r="2" fill="#e0533d"/>
+      <circle cx="-4.5" cy="-17" r="1.6" fill="#1f2a24"/><circle cx="4.5" cy="-17" r="1.6" fill="#1f2a24"/>
+      <circle cx="-8" cy="-13.5" r="2" fill="#f6a5a0" opacity=".8"/><circle cx="8" cy="-13.5" r="2" fill="#f6a5a0" opacity=".8"/>
+      <path d="M-2.5 -13.5 Q0 -11 2.5 -13.5" fill="none" stroke="#1f2a24" stroke-width="1.3" stroke-linecap="round"/>
+      <line id="armL" x1="-12" y1="-15" x2="-17" y2="-11" stroke="#7a5a2e" stroke-width="2.4" stroke-linecap="round"/>
+      <line id="armR" x1="12" y1="-15" x2="17" y2="-11" stroke="#7a5a2e" stroke-width="2.4" stroke-linecap="round"/>
+    </g></g>`;
+  svg.innerHTML=html;
+  const bao=svg.querySelector('#bao'), body=svg.querySelector('#baoBody'), legL=svg.querySelector('#legL'), legR=svg.querySelector('#legR'), armR=svg.querySelector('#armR');
+  const spots=[]; spots.push({x:X0-2,y:BASE+1});
+  for(let c=0;c<COLS_N;c++) spots.push({x:X0+c*(W+4)+W/2, y:BASE-(c+1)*H+3});
+  const place=(x,y,sx=1,sy=1)=>bao.setAttribute('transform',`translate(${x} ${y}) scale(${sx} ${sy})`);
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){const t=spots[spots.length-1];place(t.x,t.y);return}
+  let i=0, phase='pause', t0=performance.now();
+  function frame(now){
+    const el=now-t0;
+    if(phase==='pause'){
+      const sq=el<120?1-Math.sin(el/120*Math.PI)*.12:1; place(spots[i].x,spots[i].y,1/sq,sq);
+      if(i===spots.length-1){ // celebrate on top
+        armR.setAttribute('x2',17); armR.setAttribute('y2',-24+Math.sin(el/90)*4);
+        place(spots[i].x, spots[i].y-Math.abs(Math.sin(el/220))*8);
+        if(el>1800){ bao.style.transition='opacity .4s'; bao.style.opacity=0; if(el>2300){i=0;armR.setAttribute('y2',-11);place(spots[0].x,spots[0].y);bao.style.opacity=1;t0=now;phase='pause'} }
+      } else if(el>(i===0?700:380)){phase='hop';t0=now}
+    } else { // hop
+      const d=480, k=Math.min(1,el/d), a=spots[i], b=spots[i+1];
+      const x=a.x+(b.x-a.x)*k, y=a.y+(b.y-a.y)*k-Math.sin(k*Math.PI)*20;
+      const swing=Math.sin(k*Math.PI*2)*3; legL.setAttribute('x2',-5+swing); legR.setAttribute('x2',5-swing);
+      place(x,y);
+      if(k>=1){i++;phase='pause';t0=now}
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+progress(); checkSection();
+</script>
+</body>
+</html>
